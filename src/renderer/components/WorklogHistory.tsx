@@ -44,9 +44,9 @@ export default function WorklogHistory() {
   return (
     <section className="worklog-history">
       <div className="worklog-header">
-        <h3>Hoy</h3>
-        <button className="btn-refresh" onClick={refreshWorklogs} title="Actualizar">
-          ↻
+        <h3>Today</h3>
+        <button className="btn-refresh" onClick={refreshWorklogs} title="Refresh">
+          SYNC
         </button>
       </div>
 
@@ -65,22 +65,22 @@ export default function WorklogHistory() {
         </div>
         <div className="progress-text">
           <span>
-            {formatDuration(todayTotalSeconds)} cargadas
+            {formatDuration(todayTotalSeconds)} logged
             {timer.isRunning && timerElapsed > 0 && (
               <span className="projected-text"> + {formatDuration(timerElapsed)}</span>
             )}
           </span>
           <span>
             {remaining > 0
-              ? `Faltan ${formatDuration(remaining)}`
-              : 'Objetivo cumplido'
+              ? `${formatDuration(remaining)} remaining`
+              : 'Target reached'
             }
           </span>
         </div>
       </div>
 
       {todayWorklogs.length === 0 ? (
-        <div className="no-worklogs">No hay horas cargadas hoy</div>
+        <div className="no-worklogs">NO WORKLOGS TODAY</div>
       ) : (
         <div className="worklog-list">
           {todayWorklogs.map((wl) => (

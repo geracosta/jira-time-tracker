@@ -31,11 +31,11 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Jira Time Tracker</h1>
+        <h1>JIRA TIME TRACKER</h1>
         <div className="header-actions">
           <span className={`connection-dot ${isConnected ? 'connected' : 'disconnected'}`} />
           <button className="icon-btn" onClick={() => setCurrentView('settings')} title="Configuración">
-            ⚙
+            CFG
           </button>
         </div>
       </header>

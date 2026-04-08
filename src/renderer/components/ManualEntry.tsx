@@ -16,10 +16,10 @@ export default function ManualEntry({ onBack }: { onBack: () => void }) {
     return (
       <div className="manual-entry">
         <div className="view-header">
-          <button className="btn-back" onClick={onBack}>← Volver</button>
-          <h2>Carga Manual</h2>
+          <button className="btn-back" onClick={onBack}>BACK</button>
+          <h2>Manual Entry</h2>
         </div>
-        <p className="no-results">No hay tarea seleccionada</p>
+        <p className="no-results">NO ISSUE SELECTED</p>
       </div>
     )
   }
@@ -34,13 +34,13 @@ export default function ManualEntry({ onBack }: { onBack: () => void }) {
     const totalSeconds = h * 3600 + m * 60
 
     if (totalSeconds < 60) {
-      setError('El tiempo mínimo es 1 minuto')
+      setError('Minimum time is 1 minute')
       return
     }
 
     const startedAt = new Date(`${date}T${startTime}:00`)
     if (isNaN(startedAt.getTime())) {
-      setError('Fecha/hora inválida')
+      setError('Invalid date/time')
       return
     }
 
@@ -58,7 +58,7 @@ export default function ManualEntry({ onBack }: { onBack: () => void }) {
       await refreshWorklogs()
       setTimeout(() => onBack(), 1500)
     } else {
-      setError(result.error || 'Error al guardar')
+      setError(result.error || 'Error saving worklog')
     }
     setIsSaving(false)
   }
@@ -66,8 +66,8 @@ export default function ManualEntry({ onBack }: { onBack: () => void }) {
   return (
     <div className="manual-entry">
       <div className="view-header">
-        <button className="btn-back" onClick={onBack}>← Volver</button>
-        <h2>Carga Manual</h2>
+        <button className="btn-back" onClick={onBack}>BACK</button>
+        <h2>Manual Entry</h2>
       </div>
 
       <div className="selected-issue-card">
@@ -78,7 +78,7 @@ export default function ManualEntry({ onBack }: { onBack: () => void }) {
       <form onSubmit={handleSubmit} className="manual-form">
         <div className="form-row">
           <div className="form-group">
-            <label>Horas</label>
+            <label>Hours</label>
             <input
               type="number"
               min="0"
@@ -89,7 +89,7 @@ export default function ManualEntry({ onBack }: { onBack: () => void }) {
             />
           </div>
           <div className="form-group">
-            <label>Minutos</label>
+            <label>Minutes</label>
             <input
               type="number"
               min="0"
@@ -103,7 +103,7 @@ export default function ManualEntry({ onBack }: { onBack: () => void }) {
 
         <div className="form-row">
           <div className="form-group">
-            <label>Fecha</label>
+            <label>Date</label>
             <input
               type="date"
               value={date}
@@ -111,7 +111,7 @@ export default function ManualEntry({ onBack }: { onBack: () => void }) {
             />
           </div>
           <div className="form-group">
-            <label>Hora inicio</label>
+            <label>Start Time</label>
             <input
               type="time"
               value={startTime}
@@ -121,20 +121,20 @@ export default function ManualEntry({ onBack }: { onBack: () => void }) {
         </div>
 
         <div className="form-group full-width">
-          <label>Comentario (opcional)</label>
+          <label>Comment</label>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
-            placeholder="Descripción del trabajo realizado..."
+            placeholder="Work description..."
             rows={3}
           />
         </div>
 
         {error && <div className="form-error">{error}</div>}
-        {success && <div className="form-success">Worklog guardado en Jira</div>}
+        {success && <div className="form-success">WORKLOG SAVED</div>}
 
         <button type="submit" className="btn btn-primary" disabled={isSaving}>
-          {isSaving ? 'Guardando...' : 'Guardar en Jira'}
+          {isSaving ? 'SAVING...' : 'SAVE TO JIRA'}
         </button>
       </form>
     </div>

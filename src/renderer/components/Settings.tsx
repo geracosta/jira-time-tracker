@@ -33,7 +33,6 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
   async function handleTestConnection() {
     setTesting(true)
     setTestResult(null)
-    // Save first so the main process has the credentials
     await saveSettings(form)
     const result = await testConnection()
     setTestResult(result)
@@ -50,19 +49,19 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
   return (
     <div className="settings-view">
       <div className="view-header">
-        {onBack && <button className="btn-back" onClick={onBack}>← Volver</button>}
-        <h2>Configuración</h2>
+        {onBack && <button className="btn-back" onClick={onBack}>BACK</button>}
+        <h2>Configuration</h2>
       </div>
 
       <div className="settings-form">
         <fieldset>
-          <legend>Conexión a Jira</legend>
+          <legend>Jira Connection</legend>
 
           <div className="form-group full-width">
-            <label>URL de Jira</label>
+            <label>Jira URL</label>
             <input
               type="url"
-              placeholder="https://tu-empresa.atlassian.net"
+              placeholder="https://your-company.atlassian.net"
               value={form.jiraUrl}
               onChange={(e) => updateField('jiraUrl', e.target.value)}
             />
@@ -72,7 +71,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
             <label>Email</label>
             <input
               type="email"
-              placeholder="tu@email.com"
+              placeholder="you@email.com"
               value={form.email}
               onChange={(e) => updateField('email', e.target.value)}
             />
@@ -82,12 +81,12 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
             <label>API Token</label>
             <input
               type="password"
-              placeholder="Tu API token de Atlassian"
+              placeholder="Atlassian API token"
               value={form.apiToken}
               onChange={(e) => updateField('apiToken', e.target.value)}
             />
             <small className="form-hint">
-              Generalo en id.atlassian.net/manage-profile/security/api-tokens
+              Generate at id.atlassian.net/manage-profile/security/api-tokens
             </small>
           </div>
 
@@ -96,13 +95,13 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
             onClick={handleTestConnection}
             disabled={testing || !form.jiraUrl || !form.email || !form.apiToken}
           >
-            {testing ? 'Probando...' : 'Probar conexión'}
+            {testing ? 'TESTING...' : 'TEST CONNECTION'}
           </button>
 
           {testResult && (
             <div className={`test-result ${testResult.success ? 'success' : 'error'}`}>
               {testResult.success
-                ? `Conectado como ${userName}`
+                ? `Connected as ${userName}`
                 : `Error: ${testResult.error}`
               }
             </div>
@@ -110,10 +109,10 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
         </fieldset>
 
         <fieldset>
-          <legend>Horario laboral</legend>
+          <legend>Work Hours</legend>
           <div className="form-row">
             <div className="form-group">
-              <label>Inicio</label>
+              <label>Start</label>
               <input
                 type="time"
                 value={`${String(form.workStartHour).padStart(2, '0')}:${String(form.workStartMinute).padStart(2, '0')}`}
@@ -125,7 +124,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
               />
             </div>
             <div className="form-group">
-              <label>Fin</label>
+              <label>End</label>
               <input
                 type="time"
                 value={`${String(form.workEndHour).padStart(2, '0')}:${String(form.workEndMinute).padStart(2, '0')}`}
@@ -140,7 +139,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
         </fieldset>
 
         <fieldset>
-          <legend>Notificaciones</legend>
+          <legend>Notifications</legend>
 
           <div className="form-group">
             <label className="checkbox-label">
@@ -149,12 +148,12 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
                 checked={form.notificationsEnabled}
                 onChange={(e) => updateField('notificationsEnabled', e.target.checked)}
               />
-              Activar notificaciones
+              Enable notifications
             </label>
           </div>
 
           <div className="form-group">
-            <label>Recordar cada (minutos)</label>
+            <label>Reminder interval (minutes)</label>
             <input
               type="number"
               min="1"
@@ -165,7 +164,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
           </div>
 
           <div className="form-group">
-            <label>Horas objetivo por día</label>
+            <label>Target hours per day</label>
             <input
               type="number"
               min="1"
@@ -178,7 +177,7 @@ export default function SettingsView({ onBack }: { onBack?: () => void }) {
         </fieldset>
 
         <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-          {saving ? 'Guardando...' : 'Guardar configuración'}
+          {saving ? 'SAVING...' : 'SAVE'}
         </button>
       </div>
     </div>

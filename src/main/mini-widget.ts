@@ -12,92 +12,95 @@ function getWidgetHtml(): string {
 <html>
 <head>
 <meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
     overflow: hidden;
     background: transparent;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Space Mono', monospace;
     user-select: none;
   }
   .widget {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    background: rgba(20, 20, 40, 0.95);
-    border: 1px solid rgba(79, 143, 255, 0.3);
-    border-radius: 12px;
-    color: #e8e8f0;
+    gap: 12px;
+    padding: 10px 16px;
+    background: rgba(17, 17, 17, 0.96);
+    border: 1px solid #333333;
+    border-radius: 16px;
+    color: #E8E8E8;
     -webkit-app-region: drag;
     height: ${WIDGET_HEIGHT}px;
-    backdrop-filter: blur(10px);
   }
   .dot {
-    width: 8px; height: 8px;
+    width: 6px; height: 6px;
     border-radius: 50%;
-    background: #22c55e;
+    background: #4A9E5C;
     flex-shrink: 0;
-    animation: pulse 1.5s ease-in-out infinite;
+    animation: pulse 2s ease-in-out infinite;
   }
   @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
-    50% { box-shadow: 0 0 0 4px rgba(34,197,94,0); }
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,158,92,0.3); }
+    50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(74,158,92,0); }
   }
   .info {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
   }
   .issue-key {
     font-weight: 700;
-    font-size: 12px;
-    color: #4f8fff;
+    font-size: 11px;
+    color: #FFFFFF;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: 0.04em;
   }
   .time {
     font-size: 20px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
-    color: #22c55e;
-    letter-spacing: 1px;
+    color: #FFFFFF;
+    letter-spacing: 2px;
   }
   .btn-stop {
     -webkit-app-region: no-drag;
-    width: 36px; height: 36px;
-    border-radius: 8px;
-    border: none;
-    background: #ef4444;
-    color: white;
-    font-size: 14px;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 999px;
+    border: 1px solid #D71921;
+    background: transparent;
+    color: #D71921;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     flex-shrink: 0;
-    transition: background 0.15s;
+    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
-  .btn-stop:hover { background: #dc2626; }
+  .btn-stop:hover { background: #D71921; color: #FFFFFF; }
   .btn-expand {
     -webkit-app-region: no-drag;
     width: 28px; height: 28px;
-    border-radius: 6px;
-    border: none;
-    background: rgba(255,255,255,0.08);
-    color: #8888aa;
-    font-size: 12px;
+    border-radius: 999px;
+    border: 1px solid #333333;
+    background: transparent;
+    color: #999999;
+    font-size: 11px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    transition: background 0.15s, color 0.15s;
+    transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
-  .btn-expand:hover { background: rgba(255,255,255,0.15); color: #e8e8f0; }
+  .btn-expand:hover { border-color: #999999; color: #FFFFFF; }
 </style>
 </head>
 <body>
@@ -107,8 +110,8 @@ function getWidgetHtml(): string {
     <div class="issue-key" id="issueKey">---</div>
     <div class="time" id="time">00:00:00</div>
   </div>
-  <button class="btn-stop" id="btnStop" title="Detener y guardar">&#9632;</button>
-  <button class="btn-expand" id="btnExpand" title="Abrir app">&#9723;</button>
+  <button class="btn-stop" id="btnStop" title="Stop">STOP</button>
+  <button class="btn-expand" id="btnExpand" title="Open app">&#8599;</button>
 </div>
 <script>
   const { ipcRenderer } = require('electron')

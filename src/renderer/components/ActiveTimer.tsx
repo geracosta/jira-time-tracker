@@ -43,7 +43,7 @@ export default function ActiveTimer() {
       <section className="active-timer idle">
         <div className="timer-idle-text">
           <span className="timer-dot idle-dot" />
-          Sin timer activo — Seleccioná una tarea para empezar
+          NO ACTIVE TIMER
         </div>
       </section>
     )
@@ -59,10 +59,10 @@ export default function ActiveTimer() {
       <div className="timer-display">{formatTime(elapsed)}</div>
       <div className="timer-actions">
         <button className="btn btn-stop" onClick={handleStop} disabled={isSaving}>
-          {isSaving ? 'Guardando...' : '⏹ Detener y guardar'}
+          {isSaving ? 'SAVING...' : 'STOP'}
         </button>
         <button className="btn btn-discard" onClick={discardTimer}>
-          ✕ Descartar
+          DISCARD
         </button>
       </div>
     </section>

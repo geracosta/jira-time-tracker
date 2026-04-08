@@ -35,23 +35,23 @@ export default function TaskSearch() {
   return (
     <section className="task-search">
       <div className="search-input-wrapper">
-        <span className="search-icon">🔍</span>
+        <span className="search-icon">FIND</span>
         <input
           type="text"
           className="search-input"
-          placeholder="Buscar tarea por clave o texto..."
+          placeholder="Search by key or text..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        {isSearching && <span className="search-spinner">⟳</span>}
+        {isSearching && <span className="search-spinner">...</span>}
       </div>
 
       <div className="issues-list">
         {!searchQuery.trim() && (
-          <div className="list-header">Mis tareas asignadas</div>
+          <div className="list-header">MY ISSUES</div>
         )}
         {searchQuery.trim() && displayIssues.length === 0 && !isSearching && (
-          <div className="no-results">No se encontraron tareas</div>
+          <div className="no-results">NO RESULTS</div>
         )}
         {displayIssues.map((issue) => (
           <div
@@ -67,24 +67,24 @@ export default function TaskSearch() {
                 </span>
               </div>
               <div className="issue-summary">{issue.summary}</div>
-              <div className="issue-meta">{issue.project} · {issue.issueType}</div>
+              <div className="issue-meta">{issue.project} / {issue.issueType}</div>
             </div>
             <div className="issue-actions">
               {!timer.isRunning && (
                 <button
                   className="btn-play"
                   onClick={(e) => { e.stopPropagation(); startTimer(issue) }}
-                  title="Iniciar timer"
+                  title="Start timer"
                 >
-                  ▶
+                  &#9654;
                 </button>
               )}
               <button
                 className="btn-manual"
                 onClick={(e) => handleManualEntry(issue, e)}
-                title="Carga manual"
+                title="Manual entry"
               >
-                ✏
+                +
               </button>
             </div>
           </div>
