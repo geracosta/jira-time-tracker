@@ -396,13 +396,29 @@ body {
   border-radius: 3px;
   overflow: hidden;
   margin-bottom: 4px;
+  display: flex;
 }
 
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--color-primary), var(--color-success));
-  border-radius: 3px;
+  border-radius: 3px 0 0 3px;
   transition: width 0.5s ease;
+  flex-shrink: 0;
+}
+
+.progress-fill-projected {
+  height: 100%;
+  background: var(--color-warning);
+  opacity: 0.6;
+  border-radius: 0 3px 3px 0;
+  transition: width 1s ease;
+  flex-shrink: 0;
+}
+
+.projected-text {
+  color: var(--color-warning);
+  font-weight: 500;
 }
 
 .progress-text {

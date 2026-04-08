@@ -22,7 +22,13 @@ const api = {
     getState: () => ipcRenderer.invoke('timer:getState'),
     saveState: (state: any) => ipcRenderer.invoke('timer:saveState', state),
     notifyRunning: (isRunning: boolean, issueKey?: string) =>
-      ipcRenderer.send('timer:running', isRunning, issueKey)
+      ipcRenderer.send('timer:running', isRunning, issueKey),
+    tick: (issueKey: string, formattedTime: string) =>
+      ipcRenderer.send('timer:tick', issueKey, formattedTime),
+    onWidgetStop: (callback: () => void) => {
+      ipcRenderer.on('widget:request-stop', callback)
+      return () => ipcRenderer.removeListener('widget:request-stop', callback)
+    }
   },
 
   // Notifications

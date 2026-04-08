@@ -66,6 +66,8 @@ export interface ElectronAPI {
     getState: () => Promise<PersistedTimerState | null>
     saveState: (state: PersistedTimerState | null) => Promise<void>
     notifyRunning: (isRunning: boolean, issueKey?: string) => void
+    tick: (issueKey: string, formattedTime: string) => void
+    onWidgetStop: (callback: () => void) => () => void
   }
   notifications: {
     reportTimerState: (running: boolean) => void

@@ -19,7 +19,10 @@ export default function ActiveTimer() {
       const update = () => {
         const now = Date.now()
         const diff = Math.floor((now - timer.startedAt!.getTime()) / 1000)
-        setElapsed(diff + timer.accumulatedSeconds)
+        const total = diff + timer.accumulatedSeconds
+        setElapsed(total)
+        // Send tick to main process for mini-widget
+        window.api.timer.tick(timer.issueKey, formatTime(total))
       }
       update()
       intervalRef.current = setInterval(update, 1000)

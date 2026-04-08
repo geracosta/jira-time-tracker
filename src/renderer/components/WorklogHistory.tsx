@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useApp } from '../context/AppContext'
 
 function formatDuration(seconds: number): string {
@@ -15,11 +15,31 @@ function formatHour(isoDate: string): string {
 }
 
 export default function WorklogHistory() {
-  const { todayWorklogs, todayTotalSeconds, refreshWorklogs, settings } = useApp()
+  const { todayWorklogs, todayTotalSeconds, refreshWorklogs, settings, timer } = useApp()
+  const [timerElapsed, setTimerElapsed] = useState(0)
+  const intervalRef = useRef<NodeJS.Timeout>()
+
+  useEffect(() => {
+    if (timer.isRunning && timer.startedAt) {
+      const update = () => {
+        const diff = Math.floor((Date.now() - timer.startedAt!.getTime()) / 1000)
+        setTimerElapsed(diff + timer.accumulatedSeconds)
+      }
+      update()
+      intervalRef.current = setInterval(update, 1000)
+      return () => clearInterval(intervalRef.current)
+    } else {
+      setTimerElapsed(0)
+    }
+  }, [timer.isRunning, timer.startedAt, timer.accumulatedSeconds])
 
   const targetSeconds = (settings?.targetHoursPerDay || 8) * 3600
-  const percentage = Math.min(100, (todayTotalSeconds / targetSeconds) * 100)
-  const remaining = Math.max(0, targetSeconds - todayTotalSeconds)
+  const loggedPct = Math.min(100, (todayTotalSeconds / targetSeconds) * 100)
+  const projectedPct = timer.isRunning
+    ? Math.min(100 - loggedPct, (timerElapsed / targetSeconds) * 100)
+    : 0
+  const totalProjected = todayTotalSeconds + timerElapsed
+  const remaining = Math.max(0, targetSeconds - totalProjected)
 
   return (
     <section className="worklog-history">
@@ -34,11 +54,22 @@ export default function WorklogHistory() {
         <div className="progress-bar">
           <div
             className="progress-fill"
-            style={{ width: `${percentage}%` }}
+            style={{ width: `${loggedPct}%` }}
           />
+          {timer.isRunning && projectedPct > 0 && (
+            <div
+              className="progress-fill-projected"
+              style={{ width: `${projectedPct}%` }}
+            />
+          )}
         </div>
         <div className="progress-text">
-          <span>{formatDuration(todayTotalSeconds)} cargadas</span>
+          <span>
+            {formatDuration(todayTotalSeconds)} cargadas
+            {timer.isRunning && timerElapsed > 0 && (
+              <span className="projected-text"> + {formatDuration(timerElapsed)}</span>
+            )}
+          </span>
           <span>
             {remaining > 0
               ? `Faltan ${formatDuration(remaining)}`

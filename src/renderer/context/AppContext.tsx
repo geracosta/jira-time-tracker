@@ -71,6 +71,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const todayTotalSeconds = todayWorklogs.reduce((sum, wl) => sum + wl.timeSpentSeconds, 0)
 
+  // Refs to avoid stale closures in callbacks
+  const todayWorklogsRef = useRef(todayWorklogs)
+  useEffect(() => {
+    todayWorklogsRef.current = todayWorklogs
+  }, [todayWorklogs])
+
+  const stopTimerRef = useRef(() => {})
+  useEffect(() => {
+    stopTimerRef.current = stopTimer
+  }, [stopTimer])
+
   // Load settings on mount
   const loadSettings = useCallback(async () => {
     const s = await window.api.settings.get()
@@ -109,11 +120,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for end-of-day check
     const unsubscribe = window.api.notifications.onCheckDailyHours(() => {
-      const total = todayWorklogs.reduce((sum, wl) => sum + wl.timeSpentSeconds, 0)
+      const total = todayWorklogsRef.current.reduce((sum, wl) => sum + wl.timeSpentSeconds, 0)
       window.api.notifications.reportDailyHours(total / 3600)
     })
 
-    return () => { unsubscribe() }
+    // Listen for stop request from mini-widget
+    const unsubWidget = window.api.timer.onWidgetStop(() => {
+      stopTimerRef.current()
+    })
+
+    return () => { unsubscribe(); unsubWidget() }
   }, [])
 
   // Persist timer state

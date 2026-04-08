@@ -4,8 +4,11 @@ import { setupTray, updateTrayState } from './tray'
 import { startNotificationScheduler, stopNotificationScheduler } from './notifications'
 import { registerJiraHandlers } from './jira-api'
 import { getSettings, saveSettings, getTimerState, saveTimerState } from './store'
+import { setupMiniWidget, showWidget, hideWidget, destroyWidget, updateWidget, registerWidgetIpc } from './mini-widget'
+import { setupAutoUpdater } from './updater'
 
 let mainWindow: BrowserWindow | null = null
+let activeTimerIssueKey: string | null = null
 
 declare module 'electron' {
   interface App {
@@ -40,6 +43,21 @@ function createWindow(): void {
     if (!app.isQuitting) {
       e.preventDefault()
       mainWindow?.hide()
+      // Show mini-widget if timer is active
+      if (activeTimerIssueKey) {
+        showWidget(activeTimerIssueKey)
+      }
+    }
+  })
+
+  mainWindow.on('show', () => {
+    hideWidget()
+  })
+
+  mainWindow.on('minimize', () => {
+    if (activeTimerIssueKey) {
+      mainWindow?.hide()
+      showWidget(activeTimerIssueKey)
     }
   })
 
@@ -55,6 +73,8 @@ app.whenReady().then(() => {
 
   if (mainWindow) {
     setupTray(mainWindow)
+    setupMiniWidget(mainWindow)
+    registerWidgetIpc()
   }
 
   registerJiraHandlers()
@@ -72,9 +92,18 @@ app.whenReady().then(() => {
   ipcMain.handle('timer:getState', () => getTimerState())
   ipcMain.handle('timer:saveState', (_e, state) => saveTimerState(state))
 
-  // Timer running state (for tray + notifications)
+  // Timer running state (for tray + notifications + widget)
   ipcMain.on('timer:running', (_e, isRunning: boolean, issueKey?: string) => {
     updateTrayState(isRunning, issueKey)
+    activeTimerIssueKey = isRunning ? (issueKey || null) : null
+    if (!isRunning) {
+      destroyWidget()
+    }
+  })
+
+  // Timer tick for mini-widget updates
+  ipcMain.on('timer:tick', (_e, issueKey: string, formattedTime: string) => {
+    updateWidget(issueKey, formattedTime)
   })
 
   // App control
@@ -94,6 +123,9 @@ app.whenReady().then(() => {
 
   // Start notification scheduler
   startNotificationScheduler(mainWindow!)
+
+  // Setup auto-updater
+  setupAutoUpdater(mainWindow!)
 })
 
 app.on('window-all-closed', () => {
