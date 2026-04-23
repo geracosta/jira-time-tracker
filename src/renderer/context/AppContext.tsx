@@ -12,6 +12,8 @@ interface AppContextValue {
   // Timer
   timer: TimerState
   startTimer: (issue: JiraIssue) => void
+  pauseTimer: () => void
+  resumeTimer: () => void
   stopTimer: () => Promise<void>
   discardTimer: () => void
 
@@ -77,10 +79,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     todayWorklogsRef.current = todayWorklogs
   }, [todayWorklogs])
 
-  const stopTimerRef = useRef(() => {})
-  useEffect(() => {
-    stopTimerRef.current = stopTimer
-  }, [stopTimer])
+  const stopTimerRef = useRef<() => Promise<void> | void>(() => {})
+  const pauseTimerRef = useRef<() => void>(() => {})
+  const resumeTimerRef = useRef<() => void>(() => {})
 
   // Load settings on mount
   const loadSettings = useCallback(async () => {
@@ -113,7 +114,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           startedAt: new Date(state.startedAt),
           accumulatedSeconds: state.accumulatedSeconds + elapsed
         })
-        window.api.timer.notifyRunning(true, state.issueKey)
+        window.api.timer.notifyRunning(true, state.issueKey, new Date(state.startedAt).getTime(), state.accumulatedSeconds + elapsed)
         window.api.notifications.reportTimerState(true)
       }
     })
@@ -129,7 +130,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       stopTimerRef.current()
     })
 
-    return () => { unsubscribe(); unsubWidget() }
+    const unsubWidgetPause = window.api.timer.onWidgetPause(() => {
+      pauseTimerRef.current()
+    })
+
+    const unsubWidgetPlay = window.api.timer.onWidgetPlay(() => {
+      resumeTimerRef.current()
+    })
+
+    return () => { unsubscribe(); unsubWidget(); unsubWidgetPause(); unsubWidgetPlay() }
   }, [])
 
   // Persist timer state
@@ -147,11 +156,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [timer.isRunning, timer.issueKey])
 
-  // Notify main process of timer state
+  // Notify main process of timer state (skip when paused — handled separately)
   useEffect(() => {
-    window.api.timer.notifyRunning(timer.isRunning, timer.issueKey)
+    if (timer.isPaused) return
+    window.api.timer.notifyRunning(timer.isRunning, timer.issueKey, timer.startedAt?.getTime(), timer.accumulatedSeconds)
     window.api.notifications.reportTimerState(timer.isRunning)
-  }, [timer.isRunning])
+  }, [timer.isRunning, timer.isPaused])
 
   const startTimer = useCallback((issue: JiraIssue) => {
     setTimer({
@@ -164,17 +174,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })
   }, [])
 
-  const stopTimer = useCallback(async () => {
+  const pauseTimer = useCallback(() => {
     if (!timer.isRunning || !timer.startedAt) return
+    const elapsed = Math.floor((Date.now() - timer.startedAt.getTime()) / 1000)
+    const accumulated = timer.accumulatedSeconds + elapsed
+    const h = Math.floor(accumulated / 3600)
+    const m = Math.floor((accumulated % 3600) / 60)
+    const s = accumulated % 60
+    const frozenTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+    setTimer(prev => ({
+      ...prev,
+      isRunning: false,
+      isPaused: true,
+      startedAt: null,
+      accumulatedSeconds: accumulated
+    }))
+    window.api.timer.notifyPaused(timer.issueKey, frozenTime)
+  }, [timer])
 
-    const elapsed = Math.floor((Date.now() - timer.startedAt.getTime()) / 1000) + timer.accumulatedSeconds
+  const resumeTimer = useCallback(() => {
+    if (!timer.isPaused) return
+    const startedAt = new Date()
+    setTimer(prev => ({
+      ...prev,
+      isRunning: true,
+      isPaused: false,
+      startedAt
+    }))
+  }, [timer])
+
+  const stopTimer = useCallback(async () => {
+    if (!timer.isRunning && !timer.isPaused) return
+    if (!timer.issueKey) return
+
+    let elapsed: number
+    let startedAt: Date
+    if (timer.isRunning && timer.startedAt) {
+      elapsed = Math.floor((Date.now() - timer.startedAt.getTime()) / 1000) + timer.accumulatedSeconds
+      startedAt = timer.startedAt
+    } else {
+      elapsed = timer.accumulatedSeconds
+      startedAt = new Date(Date.now() - elapsed * 1000)
+    }
+
     // Jira mínimo acepta 60 segundos, si es menos redondeamos a 60
     const timeToLog = Math.max(60, elapsed)
 
     const result = await window.api.jira.addWorklog(
       timer.issueKey,
       timeToLog,
-      timer.startedAt.toISOString()
+      startedAt.toISOString()
     )
 
     if (result.success) {
@@ -186,6 +235,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     setTimer(defaultTimer)
   }, [timer])
+
+  // Keep refs in sync (must be after function definitions)
+  useEffect(() => {
+    stopTimerRef.current = stopTimer
+  }, [stopTimer])
+
+  useEffect(() => {
+    pauseTimerRef.current = pauseTimer
+  }, [pauseTimer])
+
+  useEffect(() => {
+    resumeTimerRef.current = resumeTimer
+  }, [resumeTimer])
 
   const discardTimer = useCallback(() => {
     setTimer(defaultTimer)
@@ -250,6 +312,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         userName,
         timer,
         startTimer,
+        pauseTimer,
+        resumeTimer,
         stopTimer,
         discardTimer,
         todayWorklogs,

@@ -4,11 +4,22 @@ import { setupTray, updateTrayState } from './tray'
 import { startNotificationScheduler, stopNotificationScheduler } from './notifications'
 import { registerJiraHandlers } from './jira-api'
 import { getSettings, saveSettings, getTimerState, saveTimerState } from './store'
-import { setupMiniWidget, showWidget, hideWidget, destroyWidget, updateWidget, registerWidgetIpc } from './mini-widget'
+import { setupMiniWidget, showWidget, hideWidget, destroyWidget, updateWidget, pauseWidget, resumeWidget, registerWidgetIpc } from './mini-widget'
 import { setupAutoUpdater } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 let activeTimerIssueKey: string | null = null
+let widgetTimer: NodeJS.Timeout | null = null
+let timerStartedAt: number | null = null
+let timerAccumulatedSeconds: number = 0
+let isTimerPaused: boolean = false
+
+function formatTime(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const s = totalSeconds % 60
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
 
 declare module 'electron' {
   interface App {
@@ -37,6 +48,7 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
+    mainWindow?.webContents.setBackgroundThrottling(false)
   })
 
   mainWindow.on('close', (e) => {
@@ -93,17 +105,45 @@ app.whenReady().then(() => {
   ipcMain.handle('timer:saveState', (_e, state) => saveTimerState(state))
 
   // Timer running state (for tray + notifications + widget)
-  ipcMain.on('timer:running', (_e, isRunning: boolean, issueKey?: string) => {
+  ipcMain.on('timer:running', (_e, isRunning: boolean, issueKey?: string, startedAt?: number, accumulatedSeconds?: number) => {
     updateTrayState(isRunning, issueKey)
     activeTimerIssueKey = isRunning ? (issueKey || null) : null
-    if (!isRunning) {
+
+    if (widgetTimer) {
+      clearInterval(widgetTimer)
+      widgetTimer = null
+    }
+
+    if (isRunning && startedAt != null) {
+      const wasTimerPaused = isTimerPaused
+      isTimerPaused = false
+      timerStartedAt = startedAt
+      timerAccumulatedSeconds = accumulatedSeconds || 0
+      widgetTimer = setInterval(() => {
+        if (timerStartedAt !== null && activeTimerIssueKey) {
+          const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000) + timerAccumulatedSeconds
+          updateWidget(activeTimerIssueKey, formatTime(elapsed))
+        }
+      }, 1000)
+      if (wasTimerPaused) {
+        resumeWidget()
+      }
+    } else {
+      timerStartedAt = null
+      timerAccumulatedSeconds = 0
+      isTimerPaused = false
       destroyWidget()
     }
   })
 
-  // Timer tick for mini-widget updates
-  ipcMain.on('timer:tick', (_e, issueKey: string, formattedTime: string) => {
-    updateWidget(issueKey, formattedTime)
+  // Timer paused — widget stays open with animation
+  ipcMain.on('timer:paused', (_e, _issueKey: string, frozenTime: string) => {
+    isTimerPaused = true
+    if (widgetTimer) {
+      clearInterval(widgetTimer)
+      widgetTimer = null
+    }
+    pauseWidget(frozenTime)
   })
 
   // App control
