@@ -870,3 +870,61 @@ legend {
   border: 1px solid rgba(215, 25, 33, 0.25);
 }
 
+/* ---- Dot grid background pattern ---- */
+.app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle, var(--border) 0.5px, transparent 0.5px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+.app > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- "Needs play" animated border reminder ----
+   Active when no timer is running during work hours.
+   Subtle red comet-tail rotates around the window edge. */
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes border-spin {
+  to { --border-angle: 360deg; }
+}
+
+.app::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  border-radius: 2px;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--border-angle, 0deg),
+    transparent 0deg,
+    transparent 270deg,
+    rgba(215, 25, 33, 0.35) 315deg,
+    rgba(215, 25, 33, 0.85) 358deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#fff, #fff) content-box,
+    linear-gradient(#fff, #fff);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.app.needs-play::after {
+  opacity: 1;
+  animation: border-spin 4.5s linear infinite;
+}

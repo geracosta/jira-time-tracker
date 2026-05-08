@@ -2,3 +2,8 @@ node_modules/
 out/
 release/
 .env
+
+# Claude Code local config
+.claude/
+.claude-auto-launch.bat
+.claude-auto-launch.ps1

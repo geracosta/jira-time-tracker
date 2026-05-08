@@ -18,7 +18,7 @@ export function markWorklogAdded(): void {
   lastWorklogTime = Date.now()
 }
 
-function isWithinWorkHours(settings: ReturnType<typeof getSettings>): boolean {
+export function isWithinWorkHours(settings: ReturnType<typeof getSettings> = getSettings()): boolean {
   const now = new Date()
   const currentMinutes = now.getHours() * 60 + now.getMinutes()
   const startMinutes = settings.workStartHour * 60 + settings.workStartMinute

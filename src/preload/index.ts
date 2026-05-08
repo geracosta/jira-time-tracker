@@ -21,23 +21,13 @@ const api = {
   timer: {
     getState: () => ipcRenderer.invoke('timer:getState'),
     saveState: (state: any) => ipcRenderer.invoke('timer:saveState', state),
-    notifyRunning: (isRunning: boolean, issueKey?: string, startedAt?: number, accumulatedSeconds?: number) =>
-      ipcRenderer.send('timer:running', isRunning, issueKey, startedAt, accumulatedSeconds),
-    notifyPaused: (issueKey: string, frozenTime: string) =>
-      ipcRenderer.send('timer:paused', issueKey, frozenTime),
+    notifyRunning: (isRunning: boolean, issueKey?: string) =>
+      ipcRenderer.send('timer:running', isRunning, issueKey),
     tick: (issueKey: string, formattedTime: string) =>
       ipcRenderer.send('timer:tick', issueKey, formattedTime),
     onWidgetStop: (callback: () => void) => {
       ipcRenderer.on('widget:request-stop', callback)
       return () => ipcRenderer.removeListener('widget:request-stop', callback)
-    },
-    onWidgetPause: (callback: () => void) => {
-      ipcRenderer.on('widget:request-pause', callback)
-      return () => ipcRenderer.removeListener('widget:request-pause', callback)
-    },
-    onWidgetPlay: (callback: () => void) => {
-      ipcRenderer.on('widget:request-play', callback)
-      return () => ipcRenderer.removeListener('widget:request-play', callback)
     }
   },
 

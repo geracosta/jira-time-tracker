@@ -1,25 +1,23 @@
-import { app, BrowserWindow, ipcMain, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { setupTray, updateTrayState } from './tray'
-import { startNotificationScheduler, stopNotificationScheduler } from './notifications'
+import { startNotificationScheduler, stopNotificationScheduler, isWithinWorkHours } from './notifications'
 import { registerJiraHandlers } from './jira-api'
 import { getSettings, saveSettings, getTimerState, saveTimerState } from './store'
-import { setupMiniWidget, showWidget, hideWidget, destroyWidget, updateWidget, pauseWidget, resumeWidget, registerWidgetIpc } from './mini-widget'
+import {
+  setupMiniWidget,
+  showRunningWidget,
+  showIdleWidget,
+  hideWidget,
+  destroyWidget,
+  updateWidget,
+  registerWidgetIpc
+} from './mini-widget'
 import { setupAutoUpdater } from './updater'
 
 let mainWindow: BrowserWindow | null = null
 let activeTimerIssueKey: string | null = null
-let widgetTimer: NodeJS.Timeout | null = null
-let timerStartedAt: number | null = null
-let timerAccumulatedSeconds: number = 0
-let isTimerPaused: boolean = false
-
-function formatTime(totalSeconds: number): string {
-  const h = Math.floor(totalSeconds / 3600)
-  const m = Math.floor((totalSeconds % 3600) / 60)
-  const s = totalSeconds % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
-}
+let widgetSyncInterval: NodeJS.Timeout | null = null
 
 declare module 'electron' {
   interface App {
@@ -27,6 +25,30 @@ declare module 'electron' {
   }
 }
 app.isQuitting = false
+
+function isMainWindowVisible(): boolean {
+  if (!mainWindow || mainWindow.isDestroyed()) return false
+  return mainWindow.isVisible() && !mainWindow.isMinimized()
+}
+
+function syncWidgetVisibility(): void {
+  if (isMainWindowVisible()) {
+    hideWidget()
+    return
+  }
+  if (activeTimerIssueKey) {
+    showRunningWidget(activeTimerIssueKey)
+    return
+  }
+  // No active timer.
+  const settings = getSettings()
+  const hasJiraSetup = !!(settings.jiraUrl && settings.email && settings.apiToken)
+  if (hasJiraSetup && isWithinWorkHours(settings)) {
+    showIdleWidget()
+  } else {
+    destroyWidget()
+  }
+}
 
 function createWindow(): void {
   mainWindow = new BrowserWindow({
@@ -38,7 +60,8 @@ function createWindow(): void {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false
+      sandbox: false,
+      backgroundThrottling: false
     },
     show: false,
     frame: true,
@@ -48,17 +71,13 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => {
     mainWindow?.show()
-    mainWindow?.webContents.setBackgroundThrottling(false)
   })
 
   mainWindow.on('close', (e) => {
     if (!app.isQuitting) {
       e.preventDefault()
       mainWindow?.hide()
-      // Show mini-widget if timer is active
-      if (activeTimerIssueKey) {
-        showWidget(activeTimerIssueKey)
-      }
+      syncWidgetVisibility()
     }
   })
 
@@ -66,11 +85,13 @@ function createWindow(): void {
     hideWidget()
   })
 
+  mainWindow.on('hide', () => {
+    syncWidgetVisibility()
+  })
+
   mainWindow.on('minimize', () => {
-    if (activeTimerIssueKey) {
-      mainWindow?.hide()
-      showWidget(activeTimerIssueKey)
-    }
+    mainWindow?.hide()
+    syncWidgetVisibility()
   })
 
   if (process.env['ELECTRON_RENDERER_URL']) {
@@ -98,6 +119,7 @@ app.whenReady().then(() => {
     // Restart notification scheduler with new settings
     stopNotificationScheduler()
     startNotificationScheduler(mainWindow!)
+    syncWidgetVisibility()
   })
 
   // Timer state IPC (for persistence across restarts)
@@ -105,45 +127,20 @@ app.whenReady().then(() => {
   ipcMain.handle('timer:saveState', (_e, state) => saveTimerState(state))
 
   // Timer running state (for tray + notifications + widget)
-  ipcMain.on('timer:running', (_e, isRunning: boolean, issueKey?: string, startedAt?: number, accumulatedSeconds?: number) => {
+  ipcMain.on('timer:running', (_e, isRunning: boolean, issueKey?: string) => {
     updateTrayState(isRunning, issueKey)
     activeTimerIssueKey = isRunning ? (issueKey || null) : null
-
-    if (widgetTimer) {
-      clearInterval(widgetTimer)
-      widgetTimer = null
-    }
-
-    if (isRunning && startedAt != null) {
-      const wasTimerPaused = isTimerPaused
-      isTimerPaused = false
-      timerStartedAt = startedAt
-      timerAccumulatedSeconds = accumulatedSeconds || 0
-      widgetTimer = setInterval(() => {
-        if (timerStartedAt !== null && activeTimerIssueKey) {
-          const elapsed = Math.floor((Date.now() - timerStartedAt) / 1000) + timerAccumulatedSeconds
-          updateWidget(activeTimerIssueKey, formatTime(elapsed))
-        }
-      }, 1000)
-      if (wasTimerPaused) {
-        resumeWidget()
-      }
-    } else {
-      timerStartedAt = null
-      timerAccumulatedSeconds = 0
-      isTimerPaused = false
-      destroyWidget()
-    }
+    syncWidgetVisibility()
   })
 
-  // Timer paused — widget stays open with animation
-  ipcMain.on('timer:paused', (_e, _issueKey: string, frozenTime: string) => {
-    isTimerPaused = true
-    if (widgetTimer) {
-      clearInterval(widgetTimer)
-      widgetTimer = null
-    }
-    pauseWidget(frozenTime)
+  // Renderer reports work-hours-relevant state changes (e.g. settings updates)
+  ipcMain.on('widget:resync', () => {
+    syncWidgetVisibility()
+  })
+
+  // Timer tick for mini-widget updates
+  ipcMain.on('timer:tick', (_e, issueKey: string, formattedTime: string) => {
+    updateWidget(issueKey, formattedTime)
   })
 
   // App control
@@ -166,6 +163,9 @@ app.whenReady().then(() => {
 
   // Setup auto-updater
   setupAutoUpdater(mainWindow!)
+
+  // Periodic widget sync to handle work-hours boundary crossings.
+  widgetSyncInterval = setInterval(syncWidgetVisibility, 60 * 1000)
 })
 
 app.on('window-all-closed', () => {
@@ -176,4 +176,8 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   app.isQuitting = true
+  if (widgetSyncInterval) {
+    clearInterval(widgetSyncInterval)
+    widgetSyncInterval = null
+  }
 })
