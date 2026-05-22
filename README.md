@@ -8,6 +8,25 @@ App de escritorio (Electron + React + TypeScript) para trackear tiempo y registr
 - npm
 - Windows (el `dist` está configurado para generar instalador NSIS)
 
+## Configuración: generar el API Token de Jira
+
+La app se conecta a Jira Cloud usando autenticación básica con tu email + un **API Token** de Atlassian (no tu contraseña). Para generarlo:
+
+1. Iniciá sesión en Atlassian y abrí: https://id.atlassian.com/manage-profile/security/api-tokens
+2. Hacé clic en **Create API token**.
+3. Ponele un nombre que reconozcas (por ejemplo `jira-time-tracker`) y confirmá.
+4. Copiá el token **en ese momento** — Atlassian solo lo muestra una vez. Si lo perdés, tenés que crear uno nuevo.
+
+Luego, en la pantalla de **Settings** de la app, completá:
+
+- **Jira URL**: la URL de tu instancia, por ejemplo `https://tu-empresa.atlassian.net`
+- **Email**: el email de tu cuenta de Atlassian
+- **API Token**: el token que acabás de copiar
+
+Hacé clic en **Test / Guardar** para validar la conexión. Las credenciales se guardan localmente en tu equipo.
+
+> Nota: si dejás de usar la app o creés que el token se filtró, podés revocarlo desde la misma página de tokens de Atlassian.
+
 ## Instalación de dependencias
 
 ```powershell
